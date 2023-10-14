@@ -1,0 +1,23 @@
+{
+  "name": "wanted-pre-onboarding-backend",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kangwooklee29/wanted-pre-onboarding-backend.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kangwooklee29/wanted-pre-onboarding-backend/issues"
+  },
+  "homepage": "https://github.com/kangwooklee29/wanted-pre-onboarding-backend#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
