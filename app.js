@@ -20,13 +20,11 @@ async function fetchJobAd(where) {
 
     if (where) {
         options.where = where;
+        if (where.hasOwnProperty('id')) {
+            return await JobAd.findOne(options);
+        }
     }
-
-    if (where.hasOwnProperty('id')) {
-        return await JobAd.findOne(options);
-    } else {
-        return await JobAd.findAll(options);
-    }
+    return await JobAd.findAll(options);
 }
 
 app.get('/jobad', async (req, res) => {
