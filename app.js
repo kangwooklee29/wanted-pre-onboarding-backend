@@ -9,9 +9,26 @@ app.get('/', (req, res) => {
     res.send('Hello World!');
 });
 
+async function fetchJobAd(id) {
+    const options = {
+        attributes: ['id', 'position', 'reward', 'skills', 'content'],
+        include: [{
+            model: Company,
+            attributes: ['name', 'location', 'country']
+        }]
+    };
+
+    if (id) {
+        options.where = { id };
+        return await JobAd.findOne(options);
+    } else {
+        return await JobAd.findAll(options);
+    }
+}
+
 app.get('/jobad', async (req, res) => {
     try {
-        const jobAds = await JobAd.findAll();
+        const jobAds = await fetchJobAd();
         res.json(jobAds);
     } catch (error) {
         res.status(500).send({ message: error.message });
@@ -100,14 +117,7 @@ app.get('/jobad/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const jobAd = await JobAd.findOne({
-            where: { id },
-            attributes: ['id', 'position', 'reward', 'skills', 'content'],
-            include: [{
-                model: Company,
-                attributes: ['name', 'location', 'country']
-            }]
-        });
+        const jobAd = await fetchJobAd(id);
 
         if (!jobAd) {
             return res.status(404).send({ message: 'No JobAd record found' });
