@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+    volumes:
+      - ./db.development.sqlite:/usr/src/app/db.development.sqlite
 
   nginx:
     image: nginx:latest
