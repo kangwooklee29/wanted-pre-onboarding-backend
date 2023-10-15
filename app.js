@@ -9,22 +9,41 @@ app.get('/', (req, res) => {
     res.send('Hello World!');
 });
 
-async function fetchJobAd(where) {
+async function fetchJobAd(param) {
+    /*
+
+    이 함수가 호출되는 케이스 구분
+    1. /jobad, GET: 모든 채용공고 목록을 리턴해야. 이때, JobAd에서 'content' field는 생략해야.
+    2. /jobad/:id, GET: 주어진 id의 채용공고를 리턴해야. 이때, JobAd에서 'content' field를 가져와야.
+    3. /search?q=.., GET: 주어진 쿼리에 해당하는 채용공고 목록을 리턴해야. 이때, JobAd에서 'content' field는 생략해야.
+
+    */
+
+    const {
+        additionalAttributes = [],
+        where
+    } = param;
+
     const options = {
-        attributes: ['id', 'position', 'reward', 'skills', 'content'],
+        attributes: ['id', 'position', 'reward', 'skills', ...additionalAttributes],
         include: [{
             model: Company,
             attributes: ['name', 'location', 'country']
         }]
     };
 
+    let id;
+
     if (where) {
         options.where = where;
-        if (where.hasOwnProperty('id')) {
-            return await JobAd.findOne(options);
-        }
+        id = where.id;
     }
-    return await JobAd.findAll(options);
+
+    if (id) {
+        return await JobAd.findOne(options);
+    } else {
+        return await JobAd.findAll(options);
+    }
 }
 
 app.get('/jobad', async (req, res) => {
@@ -118,7 +137,10 @@ app.get('/jobad/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const jobAd = await fetchJobAd({ id: id });
+        const jobAd = await fetchJobAd({
+            additionalAttributes: [ 'content' ],
+            where: { id }
+        });
 
         if (!jobAd) {
             return res.status(404).send({ message: 'No JobAd record found' });
@@ -129,11 +151,12 @@ app.get('/jobad/:id', async (req, res) => {
             attributes: ['id']
         });
 
-        const jobAdIds = jobAdsCompanyHas.map(ad => ad.id);
+        const jobAdIds = jobAdsCompanyHas
+            .filter(ad => ad.id !== id)
+            .map(ad => ad.id);
 
         const result = {
             ...jobAd.dataValues,
-            ...jobAd.Company.dataValues,
             OtherJobAdIds: jobAdIds
         };
 
@@ -187,25 +210,30 @@ app.get('/search', async (req, res) => {
             where: {
                 [Op.or]: [
                     { name: { [Op.like]: `%${query}%` } },
-                    { location: { [Op.like]: `%${query}%` } }
+                    { location: { [Op.like]: `%${query}%` } },
+                    { country: { [Op.like]: `%${query}%` } }
                 ]
             }
         });
 
         const companyIds = matchedCompanies.map(company => company.id);
         const resultFromCompany = await fetchJobAd({
-            companyId: {
-                [Op.in]: companyIds
+            where: {
+                companyId: {
+                    [Op.in]: companyIds
+                }
             }
         });
 
         const resultFromJobAd = await fetchJobAd({
-            [Op.or]: [
-                { position: { [Op.like]: `%${query}%` } },
-                { reward: { [Op.like]: `%${query}%` } },
-                { skills: { [Op.like]: `%${query}%` } },
-                { content: { [Op.like]: `%${query}%` } },
-            ]
+            where: {
+                [Op.or]: [
+                    { position: { [Op.like]: `%${query}%` } },
+                    { reward: { [Op.like]: `%${query}%` } },
+                    { skills: { [Op.like]: `%${query}%` } },
+                    { content: { [Op.like]: `%${query}%` } },
+                ]
+            }
         });
 
         res.json([
