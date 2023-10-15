@@ -9,7 +9,7 @@ app.get('/', (req, res) => {
     res.send('Hello World!');
 });
 
-async function fetchJobAd(id) {
+async function fetchJobAd(where) {
     const options = {
         attributes: ['id', 'position', 'reward', 'skills', 'content'],
         include: [{
@@ -18,8 +18,11 @@ async function fetchJobAd(id) {
         }]
     };
 
-    if (id) {
-        options.where = { id };
+    if (where) {
+        options.where = where;
+    }
+
+    if (where.hasOwnProperty('id')) {
         return await JobAd.findOne(options);
     } else {
         return await JobAd.findAll(options);
@@ -117,7 +120,7 @@ app.get('/jobad/:id', async (req, res) => {
     try {
         const { id } = req.params;
 
-        const jobAd = await fetchJobAd(id);
+        const jobAd = await fetchJobAd({ id: id });
 
         if (!jobAd) {
             return res.status(404).send({ message: 'No JobAd record found' });
@@ -166,6 +169,51 @@ app.post('/user-job-ad', async (req, res) => {
 
         // Created a new job application info
         res.status(201).json(newUserJobAd);
+
+    } catch (error) {
+        res.status(500).send({ message: error.message });
+    }
+});
+
+const { Op } = require('sequelize'); 
+
+app.get('/search', async (req, res) => {
+    try {
+        const query = req.query.q;
+
+        if (!query) {
+            return res.status(400).send({ message: 'q parameter is required' });
+        }
+
+        const matchedCompanies = await Company.findAll({
+            where: {
+                [Op.or]: [
+                    { name: { [Op.like]: `%${query}%` } },
+                    { location: { [Op.like]: `%${query}%` } }
+                ]
+            }
+        });
+
+        const companyIds = matchedCompanies.map(company => company.id);
+        const resultFromCompany = await fetchJobAd({
+            companyId: {
+                [Op.in]: companyIds
+            }
+        });
+
+        const resultFromJobAd = await fetchJobAd({
+            [Op.or]: [
+                { position: { [Op.like]: `%${query}%` } },
+                { reward: { [Op.like]: `%${query}%` } },
+                { skills: { [Op.like]: `%${query}%` } },
+                { content: { [Op.like]: `%${query}%` } },
+            ]
+        });
+
+        res.json({
+            companies: matchedCompanies,
+            jobAds: relatedJobAds
+        });
 
     } catch (error) {
         res.status(500).send({ message: error.message });
