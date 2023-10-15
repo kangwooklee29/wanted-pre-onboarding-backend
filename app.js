@@ -210,10 +210,10 @@ app.get('/search', async (req, res) => {
             ]
         });
 
-        res.json({
-            companies: matchedCompanies,
-            jobAds: relatedJobAds
-        });
+        res.json([
+            ...resultFromCompany,
+            ...resultFromJobAd
+        ]);
 
     } catch (error) {
         res.status(500).send({ message: error.message });
