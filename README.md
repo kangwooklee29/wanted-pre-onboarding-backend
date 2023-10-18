@@ -153,7 +153,127 @@ npx sequelize model:generate --name UserJobAd --attributes userId:integer,jobAdI
 }
 ```
 
+- 500: 서버 내부 오류.
 
+```json
+{
+    "message": "서버 오류 메시지"
+}
+```
+
+#### GET `/jobad/:id`
+
+주어진 ID에 해당하는 채용공고의 `content` 속성을 포함한 상세한 정보를 가져온다. 그 채용공고가 속한 회사의 정보도 가져오고, 그 회사가 올린 다른 채용공고의 ID들도 가져온다.
+
+요청 파라미터:
+
+- `id: 수정할 채용공고의 ID.
+
+응답:
+
+- 200: OK.
+
+```json
+{
+  "id": 채용공고 ID,
+  "position": "채용 포지션",
+  "reward": 채용 보상,
+  "content": "채용 광고 내용",
+  "skills": "필요한 기술",
+  "Company": {
+    "name": "회사 이름",
+    "location": "회사 위치",
+    "country": "회사 국가"
+  },
+  "OtherJobAdIds": ["다른 채용공고 ID1", "다른 채용공고 ID2", ...]
+}
+```
+
+- 404: 데이터 없음.
+```json
+{
+  "message": "No JobAd record found"
+}
+```
+
+
+- 500: 서버 내부 오류.
+
+```json
+{
+    "message": "서버 오류 메시지"
+}
+```
+
+
+#### PUT `/jobad/:id`
+
+주어진 ID에 해당하는 채용공고의 정보를 수정한다.
+
+요청 파라미터:
+
+- `id: 수정할 채용공고의 ID.
+
+- Body:
+
+```json
+{
+  "position": "수정된 채용 포지션",
+  "content": "수정된 채용 광고 내용",
+  "skills": "수정된 필요한 기술",
+}
+```
+
+
+응답:
+
+- 204: No Content.
+
+- 404: 데이터 없음.
+```json
+{
+  "message": "No record found to update"
+}
+```
+
+
+- 500: 서버 내부 오류.
+
+```json
+{
+    "message": "서버 오류 메시지"
+}
+```
+
+
+#### DELETE `/jobad/:id`
+
+주어진 ID에 해당하는 채용공고의 정보를 삭제한다.
+
+요청 파라미터:
+
+- `id: 삭제할 채용공고의 ID.
+
+
+응답:
+
+- 204: No Content.
+
+- 404: 데이터 없음.
+```json
+{
+  "message": "No record found to delete"
+}
+```
+
+
+- 500: 서버 내부 오류.
+
+```json
+{
+    "message": "서버 오류 메시지"
+}
+```
 
 
 
@@ -227,3 +347,56 @@ npx sequelize model:generate --name UserJobAd --attributes userId:integer,jobAdI
     "message": "서버 오류 메시지"
 }
 ```
+
+
+### 세부 구현 과정
+
+#1, #2: `Dockerfile`, `docker-compose.yml`을 통해 이 서버를 위한 도커 컨테이너를 설정했다. 기본 이미지로 `node:14-slim`를 사용했으며, `package.json`에 Express.js를 추가하여 `/`로 HTTP 접속 시 "Hello World!" 메시지를 리턴하는 웹서버를 구현했다. 이 과정에서 웹 요청이 Nginx를 통하도록 설정했다.
+
+#3, #4: 서버에 Sequelize, SQLite를 설치했다.
+
+#7, #8: Sequelize CLI를 사용해 DB schema를 구현했다.
+
+#9, #10: `/jobad`, `/jobad/:id` API endpoint들에 대한 응답을 `app.js` 파일 내에 구현했다. 
+
+#13, #14: `/user-job-ad` API endpoint에 대한 응답을 `app.js` 파일 내에 구현했다.
+
+#17, #18: `/search` API endpoint에 대한 응답을 `app.js` 파일 내에 구현했다.
+
+#25, #26: `app.js` 파일 내에 구현돼있던 모든 코드를 `controllers/`, `routes/` 디렉토리를 사용하여 리팩토링했다.
+
+#27, #28: Jest를 설치하고, `/user-job-ad`, `/search` API endpoint에 대한 응답을 생성하는 `controllers/` 디렉토리 내 코드들에 대한 테스트코드를 구현했다.
+
+#29, #30: `/jobad`, `/jobad/:id` API endpoint들에 대한 응답을 생성하는 `controllers/` 디렉토리 내 코드들에 대한 테스트코드를 구현했다.
+
+
+### 서버 설치 및 실행
+
+1. 호스트에 Docker, Docker compose를 설치한다.
+
+2. 레포지토리를 clone한다.
+
+3. 다음 커맨드를 실행한다.
+```bash
+docker-compose up --build
+```
+
+4. 최초 설치 시, migration이 되어 있지 않아 서버 운영에 필요한 DB 파일이 존재하지 않으므로, 다음 커맨드를 실행하여 migration을 실행한다.
+
+```bash
+docker-compose exec express-app npx sequelize-cli db:migrate
+```
+
+
+## 프로젝트 소감
+
+- 원티드에 이런 프로그램이 존재한다는 사실을 마감일에 임박해서 알게 되어 급히 과제 프로젝트를 시작해서, 급히 구현하느라 꼼꼼히 생각하지 못한 부분이 많다. 특히 Express.js는 이 과제를 수행하면서 처음 사용해보는데, Docker, Python Flask, SQLAlchemy를 사용해서 이 과제와 거의 비슷한 과제를 이미 구현해본 경험이 있었고 전체적인 프로젝트의 코드 구조는 이와 매우 유사했던 덕분에 다행히 크게 어려움을 느끼지 않고 빠르게 학습하며 전체적인 코드를 구현할 수 있었다.
+
+- Sequelize CLI 툴을 통해 DB schema를 매우 간편하게 구현할 수 있었는데, 여기서 migration이라는 개념을 새로 배울 수 있었다. DB schema의 변경을 시간에 따라 추적해야 할 정도 대규모 프로젝트를 해보지 않아 이 유용함을 지금 완전히 이해할 수는 없지만, git을 통한 코드의 버전관리가 얼마나 강력한지는 현업 근무 경험을 통해 이미 확인했으므로 대충은 알 것 같다. 앞으로 더 큰 프로젝트를 하게 되면 이 개념을 꼭 염두에 둬야 할 것 같다.
+
+- (`userId`, `jobAdId`) 쌍을 중복이 없도록 기록하는 테이블을 어떻게 구현할까 고민하며 관련 정보를 찾다가, 단순히 이들을 모두 primary key로 지정하는 동시에 각각 `User`, `JobAd` 테이블의 `id` 속성을 참조하는 foreign key로 지정하면 해결할 수 있다는 사실을 알게되어 테스트해보고 이러한 schema를 갖는 `UserJobAd` 모델을 추가하여 문제를 해결할 수 있었다. (이처럼 `User` 테이블과 `JobAd` 테이블 사이 다대다 관계를 맺는 것을 관리하기 위한 중간 테이블을 bridge table이라 한다는 사실도 새로 배웠다.)
+
+- 유닛테스트를 구현하기 위해 Jest를 GCP e2 micro 서버에 설치하려고 했는데, 알고 보니 Jest는 상당한 규모의 유닛테스트 패키지여서 GCP e2 micro 서버에는 설치가 잘 안 되는 것 같았다. 그 외에도 전체적인 개발을 GCP e2 micro 서버에 VS code로 원격 접속해서 진행했는데 e2 micro 서버의 리소스 이슈가 있어 수시로 먹통이 되는 상황이 발생했다. 구현 직후 곧바로 docker로 실행해 웹에 배포되는 것을 확인하기 위한 목적이었는데, 지금 생각해보면 꼭 그래야 할 필요는 없는 것 같다. 되도록이면 GCP e2 micro 서버에 직접 접속해서 개발을 진행하는 일은 피해야 할 것 같다.
+
+- Jest는 처음 사용해보지만 C++에서 Catch2를 사용한 유닛테스트 코드를 작성해본 경험은 꽤 있었고, Jest에서 사용되는 테스트 코드의 구성이 이와 많이 유사한 듯해 전체적인 구현 난이도가 크게 어렵게 느껴지지는 않았다. 다만 이 정도 규모의 프로젝트를 위해 이 정도 길이의 테스트 코드를 쓰는 것이 실제로 얼마나 큰 효용이 있는지는 실무 경험을 통해 더 많이 느낄 필요가 있는 것 같다. 현업 근무 기간 동안에도 실제 프로젝트 코드에서 비할 정도로 상당량의 테스트코드를 써보았는데, 근무 기간이 짧다보니 실제 그 테스트코드들이 얼마나 전체 프로젝트에 큰 도움이 되는지를 많이 느낄 기회를 경험해보지 못해서 아쉽다.
+
